@@ -1,0 +1,77 @@
+{
+    "clap_rvq_trainer_cfg": {
+        "folders": ["./scripts/myscripts/shockwave/packaged/unmarked","./data/fma_large"],
+        "num_train_steps": 2000,
+        "batch_size": 64,
+        "accumulate_batches": 32,
+        "save_model_every": 5,
+        "save_results_every": 5
+    },
+    "hubert_kmeans_trainer_cfg": {
+        "folder": "./scripts/myscripts/shockwave/packaged/unmarked",
+        "feature_extraction_num_steps": 320,
+        "feature_extraction_batch_size": 16
+    },
+    "semantic_trainer_cfg": {
+        "stage": "semantic",
+        "folder": "./data/shockwave_preprocessed2",
+        "valid_frac": 0.05,
+        "lr": 0.0003,
+        "lr_warmup": 3000,
+        "batch_size": 3,
+        "grad_accum_every": 64,
+        "wd": 0.01,
+        "max_grad_norm": 0.5,
+        "cross_entropy_loss_weights": [0.0, 1.0],
+        "num_train_steps": 200001,
+        "save_results_every": 50,
+        "save_model_every": 50,
+        "save_predicted_tokens": true,
+        "save_reconstructed_wave": true,
+        "use_preprocessed_data": true
+    },
+    "coarse_trainer_cfg": {
+        "stage": "coarse",
+        "folder": "./data/shockwave_preprocessed2",
+        "valid_frac": 0.05,
+        "lr": 0.0003,
+        "lr_warmup": 6000,
+        "batch_size": 2,
+        "grad_accum_every": 8,
+        "wd": 0.01,
+        "max_grad_norm": 0.5,
+        "cross_entropy_loss_weights": [0.0, 0.0, 1.0],
+        "num_train_steps": 200001,
+        "save_results_every": 100,
+        "save_model_every": 500,
+        "save_predicted_tokens": true,
+        "save_reconstructed_wave": true,
+        "use_preprocessed_data": true
+    },
+    "fine_trainer_cfg": {
+        "stage": "fine",
+        "folder": "./data/shockwave_preprocessed2",
+        "valid_frac": 0.05,
+        "lr": 0.0003,
+        "lr_warmup": 0,
+        "batch_size": 2,
+        "grad_accum_every": 8,
+        "wd": 0.01,
+        "max_grad_norm": 0.5,
+        "cross_entropy_loss_weights": [0.0, 0.0, 1.0],
+        "num_train_steps": 300001,
+        "save_results_every": 100,
+        "save_model_every": 1000,
+        "save_predicted_tokens": true,
+        "save_reconstructed_wave": true,
+        "use_preprocessed_data": true
+    },
+    "data_preprocessor_cfg": {
+        "folder": ["./scripts/myscripts/shockwave/packaged/unmarked","./data/fma_large"],
+        "results_folder": "./data/shockwave_preprocessed2",
+        "max_audio_length_seconds": 30,
+        "random_crop": true,
+        "num_crops": 2,
+        "clap_batch_size": 32
+    }
+}

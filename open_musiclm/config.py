@@ -13,7 +13,7 @@ from .hf_hubert_kmeans import HfHubertWithKmeans, get_hubert_kmeans
 from .open_musiclm import (MusicLM, TokenConditionedTransformer,
                            create_coarse_transformer, create_fine_transformer,
                            create_semantic_transformer)
-from .trainer import ClapRVQTrainer, HfHubertKmeansTrainer, SingleStageTrainer
+from .trainer import ClapRVQTrainer, HfHubertKmeansTrainer, SingleStageTrainer, ClapRVQMultimodalTrainer
 from .preprocess import DataPreprocessor
 from .utils import exists, beartype_jit
 
@@ -112,7 +112,7 @@ class MusicLMModelConfig:
 
 @dataclass
 class ClapRVQTrainerConfig:
-    folder: str
+    folders: list[str]
     num_train_steps: int
     batch_size: int
     accumulate_batches: int
@@ -325,6 +325,33 @@ def create_clap_rvq_trainer_from_config(
     ).to(device)
 
     return trainer
+
+
+@beartype_jit
+def create_clap_rvq_multimodal_trainer_from_config(
+    model_config: MusicLMModelConfig,
+    training_config: MusicLMTrainingConfig,
+    clap: ClapQuantized,
+    results_folder: str,
+    device,
+    accelerate_kwargs: dict = {},
+    config_paths: Optional[List[str]] = None,
+    **kwargs,
+):
+    trainer = ClapRVQMultimodalTrainer(
+        audio_conditioner=clap,
+        results_folder=results_folder,
+        data_max_length_seconds=model_config.global_cfg.semantic_audio_length_seconds,
+        accelerate_kwargs=accelerate_kwargs,
+        config_paths=config_paths,
+        **asdict(training_config.clap_rvq_trainer_cfg),
+        **kwargs,
+    ).to(device)
+
+    return trainer
+
+
+
 
 @beartype_jit
 def create_hubert_kmeans_trainer_from_config(

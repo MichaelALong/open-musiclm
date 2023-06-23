@@ -76,21 +76,23 @@ class SoundDataset(Dataset):
         random_crop=True,
     ):
         super().__init__()
-        path = Path(folder)
-        assert path.exists(), 'folder does not exist'
 
         files = []
         ignore_files = default(ignore_files, [])
         num_ignored = 0
         ignore_file_set = set([f.split('/')[-1] for f in ignore_files])
-        for ext in exts:
-            for file in path.glob(f'**/*.{ext}'):
-                if file.name in ignore_file_set:
-                    num_ignored += 1
-                    continue
-                else:
-                    files.append(file)
-        assert len(files) > 0, 'no sound files found'
+
+        for str_path in folder:
+            path = Path(str_path)
+            assert path.exists(), f'folder does not exist: {path}'
+            for ext in exts:
+                for file in path.glob(f'**/*.{ext}'):
+                    if file.name in ignore_file_set:
+                        num_ignored += 1
+                        continue
+                    else:
+                        files.append(file)
+            assert len(files) > 0, 'no sound files found'
         if num_ignored > 0:
             print(f'skipped {num_ignored} ignored files')
 
@@ -120,11 +122,20 @@ class SoundDataset(Dataset):
             data, sample_hz = torchaudio.load(file)
         except:
             if self.ignore_load_errors:
-                return self[torch.randint(0, len(self), (1,)).item()]
+                #TODO FIX
+                #return self[torch.randint(0, len(self), (1,)).item()]
+                print("load errors..", file)
+                random_item = self[torch.randint(0, len(self), (1,)).item()]
+                return random_item
             else:
                 raise Exception(f'error loading file {file}')
 
         return self.process_audio(data, sample_hz, pad_to_target_length=True)
+        # return {
+        #     'idx': idx,
+        #     'data': self.process_audio(data, sample_hz, pad_to_target_length=True),
+        #     'file_path': str(file)
+        # }
 
     def process_audio(self, data, sample_hz, pad_to_target_length=True):
 
@@ -200,6 +211,34 @@ class SoundDataset(Dataset):
 # dataloader functions
 
 def collate_one_or_multiple_tensors(fn):
+    # @wraps(fn)
+    # def inner(data):
+    #     data_idx = [record["idx"] for record in data]
+    #     data_record = [record["data"] for record in data]
+    #     data_file = [record["file_path"] for record in data]
+    #     data_record = list(filter(lambda x: x is not None, data_record))
+    #     if len(data_record) == 0:
+    #         return data_idx, data_file, ()
+    #
+    #     is_one_data = not isinstance(data_record[0], tuple)
+    #
+    #     if is_one_data:
+    #         data_record = torch.stack(data_record)
+    #         return data_idx, data_file, (data_record,)
+    #
+    #     outputs = []
+    #     for datum in zip(*data_record):
+    #         if is_bearable(datum, Tuple[str, ...]):
+    #             output = list(datum)
+    #         else:
+    #             output = fn(datum)
+    #
+    #         outputs.append(output)
+    #
+    #     data_record = tuple(outputs)
+    #     return data_idx, data_file, data_record
+    #
+    # return inner
     @wraps(fn)
     def inner(data):
         data = list(filter(lambda x: x is not None, data))
@@ -225,11 +264,34 @@ def collate_one_or_multiple_tensors(fn):
 
     return inner
 
+# @collate_one_or_multiple_tensors
+# def curtail_to_shortest_collate(data):
+#     print("curtail_to_shortest_collate")
+#     print(data)
+#     #data0, data1 = data
+#     data_idx = [record["idx"] for record in data]
+#     data_record = [record["data"] for record in data]
+#     data_file = [record["file_path"] for record in data]
+#
+#     min_len = min(*[datum.shape[0] for datum in data_record])
+#     data_record = [datum[:min_len] for datum in data_record]
+#     return data_idx, data_file, torch.stack(data_record)
+
 @collate_one_or_multiple_tensors
 def curtail_to_shortest_collate(data):
     min_len = min(*[datum.shape[0] for datum in data])
     data = [datum[:min_len] for datum in data]
     return torch.stack(data)
+
+# @collate_one_or_multiple_tensors
+# def pad_to_longest_fn(data):
+#     print("pad_to_longest_fn")
+#     print(data)
+#     data_idx = [record["idx"] for record in data]
+#     data_record = [record["data"] for record in data]
+#     data_file = [record["file_path"] for record in data]
+#     #data0, data1 = data
+#     return data_idx, data_file, pad_sequence(data_record, batch_first = True)
 
 @collate_one_or_multiple_tensors
 def pad_to_longest_fn(data):
@@ -432,6 +494,7 @@ class PreprocessedDataset(Dataset):
 
 @collate_one_or_multiple_tensors
 def concatenate_fn(batch):
+    #TODO mlong need to treat "batch" as tuple?
     return torch.cat(batch, dim=0)
 
 def get_preprocessed_dataloader(ds, **kwargs):
